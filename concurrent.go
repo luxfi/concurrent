@@ -1,4 +1,4 @@
-// Package concurrent provides concurrency control utilities inspired by VictoriaMetrics
+// Package concurrent provides concurrency control utilities.
 package concurrent
 
 import (
@@ -9,17 +9,17 @@ import (
 	"github.com/luxfi/metric"
 )
 
-// ConcurrencyLimiter provides token-based concurrency limiting similar to VictoriaMetrics
+// ConcurrencyLimiter provides token-based concurrency limiting.
 type ConcurrencyLimiter struct {
-	tokens chan struct{}
-	name   string
-	waitCounter    *metric.OptimizedCounter
-	activeGauge    *metric.OptimizedGauge
-	totalProcessed *metric.OptimizedCounter
+	tokens         chan struct{}
+	name           string
+	waitCounter    metric.Counter
+	activeGauge    metric.Gauge
+	totalProcessed metric.Counter
 }
 
 // NewConcurrencyLimiter creates a new concurrency limiter with specified max concurrent operations
-func NewConcurrencyLimiter(maxConcurrency int, name string, reg *metric.MetricsRegistry) *ConcurrencyLimiter {
+func NewConcurrencyLimiter(maxConcurrency int, name string, reg metric.Registry) *ConcurrencyLimiter {
 	if maxConcurrency <= 0 {
 		maxConcurrency = runtime.NumCPU()
 	}
@@ -31,13 +31,9 @@ func NewConcurrencyLimiter(maxConcurrency int, name string, reg *metric.MetricsR
 
 	// Initialize metrics
 	if reg != nil {
-		limiter.waitCounter = metric.NewOptimizedCounter("concurrent_limiter_wait_total", "Total number of operations that had to wait for concurrency token")
-		limiter.activeGauge = metric.NewOptimizedGauge("concurrent_limiter_active_operations", "Number of currently active operations")
-		limiter.totalProcessed = metric.NewOptimizedCounter("concurrent_limiter_processed_total", "Total number of operations processed")
-
-		reg.RegisterCounter("concurrent_limiter_wait", limiter.waitCounter)
-		reg.RegisterGauge("concurrent_limiter_active", limiter.activeGauge)
-		reg.RegisterCounter("concurrent_limiter_processed", limiter.totalProcessed)
+		limiter.waitCounter = reg.NewCounter("concurrent_limiter_wait_total", "Total number of operations that had to wait for concurrency token")
+		limiter.activeGauge = reg.NewGauge("concurrent_limiter_active_operations", "Number of currently active operations")
+		limiter.totalProcessed = reg.NewCounter("concurrent_limiter_processed_total", "Total number of operations processed")
 	}
 
 	// Fill the channel with tokens initially
@@ -112,14 +108,14 @@ func (cl *ConcurrencyLimiter) Active() int {
 
 // WorkerPool manages a pool of workers for processing tasks
 type WorkerPool struct {
-	jobs       chan Job
-	limiter    *ConcurrencyLimiter
-	wg         sync.WaitGroup
-	ctx        context.Context
-	cancel     context.CancelFunc
-	workers    int
-	jobCounter *metric.OptimizedCounter
-	errorCounter *metric.OptimizedCounter
+	jobs           chan Job
+	limiter        *ConcurrencyLimiter
+	wg             sync.WaitGroup
+	ctx            context.Context
+	cancel         context.CancelFunc
+	workers        int
+	jobCounter     metric.Counter
+	errorCounter   metric.Counter
 	processingTime *metric.TimingMetric
 }
 
@@ -127,7 +123,7 @@ type WorkerPool struct {
 type Job func() error
 
 // NewWorkerPool creates a new worker pool with specified number of workers
-func NewWorkerPool(ctx context.Context, workers int, maxQueueSize int, name string, reg *metric.MetricsRegistry) *WorkerPool {
+func NewWorkerPool(ctx context.Context, workers int, maxQueueSize int, name string, reg metric.Registry) *WorkerPool {
 	if workers <= 0 {
 		workers = runtime.NumCPU()
 	}
@@ -144,15 +140,11 @@ func NewWorkerPool(ctx context.Context, workers int, maxQueueSize int, name stri
 
 	// Initialize metrics
 	if reg != nil {
-		wp.jobCounter = metric.NewOptimizedCounter("worker_pool_jobs_processed_total", "Total number of jobs processed by worker pool")
-		wp.errorCounter = metric.NewOptimizedCounter("worker_pool_job_errors_total", "Total number of job processing errors")
+		wp.jobCounter = reg.NewCounter("worker_pool_jobs_processed_total", "Total number of jobs processed by worker pool")
+		wp.errorCounter = reg.NewCounter("worker_pool_job_errors_total", "Total number of job processing errors")
 
-		histogram := metric.NewOptimizedHistogram("worker_pool_processing_duration_seconds", "Duration of job processing", metric.DefBuckets)
+		histogram := reg.NewHistogram("worker_pool_processing_duration_seconds", "Duration of job processing", metric.DefBuckets)
 		wp.processingTime = metric.NewTimingMetric(histogram)
-
-		reg.RegisterCounter("worker_pool_jobs_processed", wp.jobCounter)
-		reg.RegisterCounter("worker_pool_job_errors", wp.errorCounter)
-		reg.RegisterHistogram("worker_pool_processing_duration", histogram)
 	}
 
 	// Start workers
