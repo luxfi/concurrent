@@ -1,4 +1,4 @@
-# LLM.md - Hanzo Concurrent
+# Hanzo Concurrent
 
 ## Overview
 Go module: github.com/luxfi/concurrent
