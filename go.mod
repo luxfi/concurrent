@@ -3,7 +3,7 @@ module github.com/luxfi/concurrent
 go 1.26.4
 
 require (
-	github.com/luxfi/metric v1.6.0
+	github.com/luxfi/metric v1.8.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -16,9 +16,10 @@ require (
 	github.com/gorilla/rpc v1.2.1 // indirect
 	github.com/grandcat/zeroconf v1.0.0 // indirect
 	github.com/luxfi/accel v1.1.9 // indirect
-	github.com/luxfi/crypto v1.19.17 // indirect
+	github.com/luxfi/crypto v1.20.2 // indirect
+	github.com/luxfi/geth v1.20.1
 	github.com/luxfi/mdns v0.1.1 // indirect
-	github.com/luxfi/zap v0.7.2 // indirect
+	github.com/luxfi/zap v1.2.6 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
